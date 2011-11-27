@@ -1,4 +1,4 @@
-package com.markap.speachrecognition;
+package com.markap.speachrecognition.util;
 
 public class Contact {
 

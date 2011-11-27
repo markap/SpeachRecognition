@@ -3,31 +3,38 @@ package com.markap.speachrecognition;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-
-import org.apache.commons.lang3.StringUtils;
-
+import java.util.List;
 
 import android.app.Activity;
 import android.content.Intent;
-import android.database.Cursor;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.MediaPlayer.OnCompletionListener;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.Contacts.People;
 import android.speech.RecognizerIntent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.markap.speachrecognition.action.TopAction;
+import com.markap.speachrecognition.action.addsimpleanswer.AddSimpleAnswerAction;
+import com.markap.speachrecognition.action.addsimpleanswer.AddSimpleAnswerAddQuestionAction;
+import com.markap.speachrecognition.action.call.CallAction;
+import com.markap.speachrecognition.action.google.GoogleAction;
+import com.markap.speachrecognition.action.mail.MailAction;
+import com.markap.speachrecognition.action.simpleanswer.SimpleAnswerAction;
+import com.markap.speachrecognition.action.sms.SmsAction;
+import com.markap.speachrecognition.util.ContactHandler;
+
 public class SpeachRecognitionActivity extends Activity {
     private static final int VOICE_RECOGNITION_REQUEST_CODE = 0;
 	private ContactHandler contactHandler;
 	private TextView talkTextView;
 	
-	private ActionInterface action = null;
+	private List<TopAction> actions = null;
+	private TopAction currentAction;
 
 	/** Called when the activity is first created. */
     @Override
@@ -36,6 +43,15 @@ public class SpeachRecognitionActivity extends Activity {
         setContentView(R.layout.main);
         
         contactHandler = new ContactHandler(this);
+        
+        actions = new ArrayList<TopAction>();
+        actions.add(new CallAction(this, contactHandler));
+        actions.add(new SmsAction(contactHandler));
+        //actions.add(new MailAction(contactHandler));
+        actions.add(new SimpleAnswerAction());
+        actions.add(new GoogleAction(this));
+        
+        
         
         talkTextView = (TextView) findViewById(R.id.textview_talk);
         
@@ -46,6 +62,17 @@ public class SpeachRecognitionActivity extends Activity {
 			public void onClick(View arg0) {
 				startVoiceRecognitionActivity();
 				
+			}
+		});
+        
+        Button improveButton = (Button) findViewById(R.id.button_improve);
+        improveButton.setVisibility(View.GONE);
+        improveButton.setOnClickListener(new View.OnClickListener() {
+			
+			@Override
+			public void onClick(View arg0) {
+				talk("Eigene Fragen und Antworten zu Miri hinzufügen. Bereit?");
+				currentAction = new AddSimpleAnswerAction();
 			}
 		});
     }
@@ -63,15 +90,7 @@ public class SpeachRecognitionActivity extends Activity {
         startActivityForResult(intent, VOICE_RECOGNITION_REQUEST_CODE);
     }
     
-    private void findContact(String searchTerm) {
-    	Contact contact = contactHandler.findContact(searchTerm);
-            
-        talk("Willst du " + contact.getName() + " (" + contact.getPhone() + " ) anrufen?");
-        
-        action = new CallAction(this, contact);
-     
-    }
-    
+   
 
     
     @Override
@@ -81,28 +100,30 @@ public class SpeachRecognitionActivity extends Activity {
             ArrayList<String> matches = data.getStringArrayListExtra(
                     RecognizerIntent.EXTRA_RESULTS);
             
-            String[] yes = {"Ja", "ok", "yes", "mach es"};
-            String[] no = {"Nein", "nö", "ne", "na"};
-            
+           
             String topResult = matches.get(0);
             
-            if (action != null) {
-                for (String y : yes) {
-                	if (topResult.equalsIgnoreCase(y)) {
-                		action.execute();
-                		action = null;
-                		return;
-                	}
-                }
-                
-                for (String n : no) {
-                	if (topResult.equalsIgnoreCase(n)) {
-                		action = null;
-                		return;
-                	}
-                }
+            if (currentAction != null) {
+            	if (currentAction.isAction(topResult)) {
+            		currentAction.execute(topResult);
+            		talk(currentAction.getText(topResult));
+            		currentAction.nextStep();
+            		return;
+            	} else {
+            		currentAction.reset();
+            		currentAction = null;
+            	}
             }
             
+            for (TopAction action : actions) {
+            	if (action.isAction(topResult)) {
+            		currentAction = action;
+            		currentAction.execute(topResult);
+            		talk(currentAction.getText(topResult));
+            		currentAction.nextStep();
+            		return;
+            	}
+            }
             
             
             LinearLayout layout = (LinearLayout) findViewById(R.id.ll_result);
@@ -115,12 +136,8 @@ public class SpeachRecognitionActivity extends Activity {
             	
             }
             
-            
-            if (matches.get(0).contains("anrufen")) {
-            	findContact(matches.get(0).replace("anrufen", ""));
-            } else {
-            	talk(matches.get(0));
-            }
+
+            talk(matches.get(0));
             
             
         } 

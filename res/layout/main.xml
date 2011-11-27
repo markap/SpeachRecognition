@@ -27,6 +27,15 @@
 	        android:layout_marginTop="300dp"
 	        android:layout_alignParentTop="true"
 	        android:text="Button" />
+        
+        <Button
+	        android:id="@+id/button_improve"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_centerHorizontal="true"
+	        android:layout_marginTop="200dp"
+	        android:layout_alignParentTop="true"
+	        android:text="Miri verbessern" />
     
 	    <LinearLayout 
 	        android:id="@+id/ll_result"

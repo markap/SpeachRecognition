@@ -1,9 +1,8 @@
-package com.markap.speachrecognition;
+package com.markap.speachrecognition.util;
 
 import org.apache.commons.lang3.StringUtils;
 
 import android.app.Activity;
-import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.Contacts.People;
@@ -23,7 +22,8 @@ public class ContactHandler {
     	String[] projection = new String[] {
     	                             People._ID,
     	                             People.NAME,
-    	                             People.NUMBER
+    	                             People.NUMBER,
+    	                             People.PRIMARY_EMAIL_ID
     	                          };
 
     	// Get the base URI for the People table in the Contacts content provider.
@@ -52,6 +52,8 @@ public class ContactHandler {
                 // Get the field values
                 name = managedCursor.getString(nameColumn);
                 phoneNumber = managedCursor.getString(phoneColumn);
+         
+               
                 if (name != null && phoneNumber != null) {
                 	 int l = StringUtils.getLevenshteinDistance(searchTerm, name);
                 	 if (l < levenstein) {
